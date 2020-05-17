@@ -1,0 +1,21 @@
+<main id="nyheter">
+    <section>
+        <div class="container">
+            <div class="row">
+                <div class="col-sm">
+                    <h2>All news</h2>
+                    <p>Read the latest news</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    {{ range (Search "models.News") | Sort "CreatedAt" "desc" }}
+        <section>
+            <div class="container">
+                <h3><a href="{{.Path}}">{{ .Model.Content.Headline }}</a></h3>
+                <p>{{ .Model.CreatedAt.Format "2006-01-02" }}</p>
+                <p>{{ .Model.Content.Description }}.</p>
+            </div>
+        </section>
+    {{ end }}
+</main>

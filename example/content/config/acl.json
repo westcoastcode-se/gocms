@@ -1,0 +1,10 @@
+{
+  "Access": [
+    {
+      "Prefix": "/",
+      "Roles": [
+        "Read"
+      ]
+    }
+  ]
+}

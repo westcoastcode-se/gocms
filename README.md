@@ -9,3 +9,11 @@ Under construction
 1. Profit
 
 ## Configurations
+
+## Example
+
+You can see a very simple example on the [example](example/README.md) directory.
+
+## Best practices
+
+TBC
