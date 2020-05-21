@@ -11,13 +11,13 @@ import (
 	"sync"
 )
 
-type TemplateDatabase struct {
+type GitControlledTemplateDatabase struct {
 	rootPath  string
 	mux       sync.Mutex
 	Templates map[string]string
 }
 
-func (f *TemplateDatabase) ParseTemplates(original *template.Template) error {
+func (f *GitControlledTemplateDatabase) ParseTemplates(original *template.Template) error {
 	f.mux.Lock()
 	defer f.mux.Unlock()
 	for key, value := range f.Templates {
@@ -31,7 +31,7 @@ func (f *TemplateDatabase) ParseTemplates(original *template.Template) error {
 }
 
 // Fetch a template based on it's path
-func (f *TemplateDatabase) FindTemplate(path string) (string, error) {
+func (f *GitControlledTemplateDatabase) FindTemplate(path string) (string, error) {
 	f.mux.Lock()
 	defer f.mux.Unlock()
 	if result, ok := f.Templates[path]; ok {
@@ -40,7 +40,7 @@ func (f *TemplateDatabase) FindTemplate(path string) (string, error) {
 	return "", &TemplateNotFound{path}
 }
 
-func (f *TemplateDatabase) load() error {
+func (f *GitControlledTemplateDatabase) load() error {
 	log.Printf("Loading template files from %s", f.rootPath)
 
 	pfx := len(f.rootPath) + 1
@@ -69,7 +69,7 @@ func (f *TemplateDatabase) load() error {
 	return err
 }
 
-func (f *TemplateDatabase) OnEvent(e interface{}) error {
+func (f *GitControlledTemplateDatabase) OnEvent(e interface{}) error {
 	if _, ok := e.(*event.Checkout); ok {
 		if err := f.load(); err != nil {
 			return err
@@ -78,8 +78,8 @@ func (f *TemplateDatabase) OnEvent(e interface{}) error {
 	return nil
 }
 
-func NewTemplateDatabase(bus *event.Bus, rootPath string) *TemplateDatabase {
-	impl := &TemplateDatabase{
+func NewTemplateDatabase(bus *event.Bus, rootPath string) TemplateDatabase {
+	impl := &GitControlledTemplateDatabase{
 		rootPath:  rootPath,
 		mux:       sync.Mutex{},
 		Templates: make(map[string]string),

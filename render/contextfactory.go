@@ -22,7 +22,7 @@ type ContextFactory interface {
 // Default context factory
 type DefaultContextFactory struct {
 	ContentRepository content.Repository
-	TemplateDatabase  *TemplateDatabase
+	TemplateDatabase  TemplateDatabase
 	Config            config.Config
 }
 

@@ -10,7 +10,7 @@ import (
 type Context struct {
 	Model            *content.Model
 	Funcs            template.FuncMap
-	templateDatabase *TemplateDatabase
+	templateDatabase TemplateDatabase
 }
 
 func (c *Context) GetTemplate() (*template.Template, error) {

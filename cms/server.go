@@ -59,7 +59,7 @@ type Server struct {
 	ACL security.ACL
 
 	// Database containing all templates used when rendering the actual pages
-	TemplateDatabase *render.TemplateDatabase
+	TemplateDatabase render.TemplateDatabase
 
 	// Factory used when creating contexts used by the rendering framework
 	// Override this if you want to add custom functions
@@ -217,7 +217,12 @@ func NewServer(config *config.Config) *Server {
 	}
 
 	contentRepository := content.NewRepository(bus, config.ContentDirectory+"/pages")
-	templateDatabase := render.NewTemplateDatabase(bus, config.ContentDirectory+"/templates")
+	var templateDatabase render.TemplateDatabase
+	if config.Author {
+		templateDatabase = render.NewFileSystemTemplateDatabase(config.ContentDirectory + "/templates")
+	} else {
+		templateDatabase = render.NewTemplateDatabase(bus, config.ContentDirectory+"/templates")
+	}
 	contextFactory := &render.DefaultContextFactory{
 		ContentRepository: contentRepository,
 		TemplateDatabase:  templateDatabase,
