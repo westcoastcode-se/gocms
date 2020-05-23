@@ -1,6 +1,7 @@
-package render
+package immediate
 
 import (
+	"github.com/westcoastcode-se/gocms/render"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -9,11 +10,11 @@ import (
 	"strings"
 )
 
-type FileSystemDatabase struct {
+type Database struct {
 	rootPath string
 }
 
-func (f *FileSystemDatabase) ParseTemplates(original *template.Template) error {
+func (f *Database) ParseTemplates(original *template.Template) error {
 	pfx := len(f.rootPath) + 1
 	templates := make(map[string]string)
 	err := filepath.Walk(f.rootPath, func(path string, info os.FileInfo, e1 error) error {
@@ -50,22 +51,22 @@ func (f *FileSystemDatabase) ParseTemplates(original *template.Template) error {
 	return nil
 }
 
-func (f *FileSystemDatabase) FindTemplate(path string) (string, error) {
+func (f *Database) FindTemplate(path string) (string, error) {
 	_, err := os.Stat(f.rootPath + path)
 	if err != nil {
-		return "", &TemplateNotFound{path}
+		return "", &render.TemplateNotFound{Path: path}
 	}
 
 	bytes, err := ioutil.ReadFile(f.rootPath + path)
 	if err != nil {
-		return "", &TemplateNotFound{path}
+		return "", &render.TemplateNotFound{Path: path}
 	}
 
 	return string(bytes), nil
 }
 
 // Create a database based on the template directory instead of keeping it in memory
-func NewFileSystemTemplateDatabase(rootPath string) TemplateDatabase {
-	impl := &FileSystemDatabase{rootPath: rootPath}
+func NewFileSystemTemplateDatabase(rootPath string) render.TemplateDatabase {
+	impl := &Database{rootPath: rootPath}
 	return impl
 }

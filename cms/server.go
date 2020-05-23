@@ -7,6 +7,8 @@ import (
 	"github.com/westcoastcode-se/gocms/event"
 	. "github.com/westcoastcode-se/gocms/middleware"
 	"github.com/westcoastcode-se/gocms/render"
+	"github.com/westcoastcode-se/gocms/render/cached"
+	"github.com/westcoastcode-se/gocms/render/immediate"
 	"github.com/westcoastcode-se/gocms/security"
 	"log"
 	"net/http"
@@ -44,7 +46,7 @@ type Server struct {
 	Tokenizer security.Tokenizer
 
 	// Controller for where content is located
-	GitController *content.Controller
+	ContentController content.Controller
 
 	// Repository where content can be found
 	ContentRepository content.Repository
@@ -148,7 +150,7 @@ func (s *Server) handleBuiltIn(ctx *RequestContext) bool {
 				returnMethodNotAllowed(rw)
 				return true
 			}
-			checkout(s.GitController, ctx)
+			checkout(s.ContentController, ctx)
 			return true
 		} else if strings.HasPrefix(uri, "/pages") {
 			if r.Method != http.MethodGet {
@@ -219,9 +221,9 @@ func NewServer(config *config.Config) *Server {
 	contentRepository := content.NewRepository(bus, config.ContentDirectory+"/pages")
 	var templateDatabase render.TemplateDatabase
 	if config.Author {
-		templateDatabase = render.NewFileSystemTemplateDatabase(config.ContentDirectory + "/templates")
+		templateDatabase = immediate.NewFileSystemTemplateDatabase(config.ContentDirectory + "/templates")
 	} else {
-		templateDatabase = render.NewTemplateDatabase(bus, config.ContentDirectory+"/templates")
+		templateDatabase = cached.NewDatabase(bus, config.ContentDirectory+"/templates")
 	}
 	contextFactory := &render.DefaultContextFactory{
 		ContentRepository: contentRepository,
@@ -233,7 +235,7 @@ func NewServer(config *config.Config) *Server {
 		Bus:               bus,
 		SecurityService:   security.NewLoginService(bus, config.UserDatabasePath),
 		Tokenizer:         security.NewAsymmetricTokenizer(config.PublicKeyPath, config.PrivateKeyPath),
-		GitController:     content.NewController(bus, config.ContentDirectory),
+		ContentController: content.NewGitController(bus, config.ContentDirectory),
 		ContentRepository: contentRepository,
 		FileHandler: FileHandler{
 			Prefix:  "/assets",
@@ -245,10 +247,10 @@ func NewServer(config *config.Config) *Server {
 		ContextFactory:   contextFactory,
 		config:           *config,
 		server: http.Server{
-			Addr:         config.ListenAddr,
-			ReadTimeout:  time.Second * 10,
-			WriteTimeout: time.Second * 10,
-			IdleTimeout:  time.Second * 10,
+			Addr:         config.Server.ListenAddr,
+			ReadTimeout:  time.Second * config.Server.ReadTimeout,
+			WriteTimeout: time.Second * config.Server.WriteTimeout,
+			IdleTimeout:  time.Second * config.Server.IdleTimeout,
 		},
 	}
 	result.server.Handler = result

@@ -4,10 +4,18 @@ import (
 	"encoding/json"
 	"flag"
 	"io/ioutil"
+	"time"
 )
 
+type ServerConfig struct {
+	ListenAddr   string
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
+	IdleTimeout  time.Duration
+}
+
 type Config struct {
-	ListenAddr        string
+	Server            ServerConfig
 	Author            bool
 	PublicKeyPath     string
 	PrivateKeyPath    string
@@ -23,7 +31,7 @@ func GetConfig() *Config {
 	flag.StringVar(&configPath, "config-path", "", "Path to the a file where configuration can be found")
 	config := loadConfigFromPath(configPath)
 
-	flag.StringVar(&config.ListenAddr, "listen-addr", config.ListenAddr, "Address where we listen for incoming requests")
+	flag.StringVar(&config.Server.ListenAddr, "listen-addr", config.Server.ListenAddr, "Address where we listen for incoming requests")
 	flag.BoolVar(&config.Author, "author", config.Author, "If this instance allows for authoring of content")
 	flag.StringVar(&config.PublicKeyPath, "public-key-path", config.PublicKeyPath, "Path to the public key")
 	flag.StringVar(&config.PrivateKeyPath, "private-key-path", config.PrivateKeyPath, "Path to the private key")
@@ -39,7 +47,12 @@ func GetConfig() *Config {
 
 func loadConfigFromPath(path string) *Config {
 	config := &Config{
-		ListenAddr:        "127.0.0.1:8080",
+		Server: ServerConfig{
+			ListenAddr:   "127.0.0.1:8080",
+			ReadTimeout:  10,
+			WriteTimeout: 10,
+			IdleTimeout:  10,
+		},
 		Author:            true,
 		PublicKeyPath:     "config/key.pub",
 		PrivateKeyPath:    "config/key.pem",

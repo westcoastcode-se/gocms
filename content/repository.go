@@ -19,7 +19,7 @@ type pageData struct {
 	ID        string
 	CreatedAt time.Time
 	View      string
-	Model     string
+	Type      string
 	Title     string
 	Content   json.RawMessage
 }
@@ -79,7 +79,7 @@ func (r *RepositoryImpl) Save(p string, model *Model) (*Model, error) {
 		id,
 		model.CreatedAt,
 		model.View,
-		model.Model,
+		model.Type,
 		model.Title,
 		contentJson,
 	}
@@ -110,7 +110,7 @@ func (r *RepositoryImpl) FindByPath(path string) (*Model, error) {
 		View:    "errors/404",
 		Title:   "404",
 		Content: nil,
-	}, &NotFoundError{"could not find page: " + path}
+	}, NewNotFoundError(path)
 }
 
 func (r *RepositoryImpl) Reload() error {
@@ -163,8 +163,8 @@ func (r *RepositoryImpl) unmarshal(path string, str string) (*Model, error) {
 	}
 
 	var content interface{}
-	if raw.Model != "" {
-		content, err = r.Types[raw.Model](raw.Content)
+	if raw.Type != "" {
+		content, err = r.Types[raw.Type](raw.Content)
 		if err != nil {
 			return nil, errors.New("failed to unmarshal inner content: " + path + ". Reason: " + err.Error())
 		}
@@ -174,7 +174,7 @@ func (r *RepositoryImpl) unmarshal(path string, str string) (*Model, error) {
 		ID:        raw.ID,
 		CreatedAt: raw.CreatedAt,
 		View:      raw.View,
-		Model:     raw.Model,
+		Type:      raw.Type,
 		Title:     raw.Title,
 		Content:   content,
 	}, nil
@@ -194,7 +194,7 @@ func (r *RepositoryImpl) Search(contentType string) []*SearchResult {
 	defer r.mux.Unlock()
 	var result []*SearchResult
 	for path, value := range r.Data {
-		if value.Model == contentType {
+		if value.Type == contentType {
 			result = append(result, &SearchResult{path, value})
 		}
 	}

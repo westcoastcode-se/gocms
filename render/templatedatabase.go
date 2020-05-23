@@ -2,6 +2,7 @@ package render
 
 import "html/template"
 
+// Database used for managing page templates
 type TemplateDatabase interface {
 	// Parse all templates and put the content into the supplied template context
 	ParseTemplates(original *template.Template) error

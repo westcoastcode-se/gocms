@@ -3,10 +3,21 @@ package content
 import "time"
 
 type Model struct {
-	ID        string
+	// Unique ID that represents this model
+	ID string
+
+	// Time when this instance was created
 	CreatedAt time.Time
-	View      string
-	Model     string
-	Title     string
-	Content   interface{}
+
+	// The view used when rendering this model
+	View string
+
+	// Type type
+	Type string
+
+	// The title (TODO: Remove)
+	Title string
+
+	// The actual content
+	Content interface{}
 }

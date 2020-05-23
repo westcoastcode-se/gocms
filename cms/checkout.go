@@ -16,7 +16,7 @@ type CheckoutResponse struct {
 	Commit string
 }
 
-func checkout(controller *content.Controller, ctx *RequestContext) {
+func checkout(controller content.Controller, ctx *RequestContext) {
 	user := ctx.User
 	rw := ctx.Response
 	r := ctx.Request
@@ -36,16 +36,9 @@ func checkout(controller *content.Controller, ctx *RequestContext) {
 			return
 		}
 
-		err = controller.Pull()
+		err = controller.Update(body.Commit)
 		if err != nil {
 			log.Printf(`Could not pull content from remove server. Reason: %e`, err)
-			returnErrorResponse(rw, http.StatusInternalServerError, "Could not checkout: "+body.Commit)
-			return
-		}
-
-		err = controller.Checkout(body.Commit)
-		if err != nil {
-			log.Printf(`Could not checkout content. Reason: %e`, err)
 			returnErrorResponse(rw, http.StatusInternalServerError, "Could not checkout: "+body.Commit)
 			return
 		}

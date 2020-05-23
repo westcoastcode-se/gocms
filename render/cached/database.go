@@ -1,7 +1,8 @@
-package render
+package cached
 
 import (
 	"github.com/westcoastcode-se/gocms/event"
+	"github.com/westcoastcode-se/gocms/render"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -11,13 +12,13 @@ import (
 	"sync"
 )
 
-type GitControlledTemplateDatabase struct {
+type Database struct {
 	rootPath  string
 	mux       sync.Mutex
 	Templates map[string]string
 }
 
-func (f *GitControlledTemplateDatabase) ParseTemplates(original *template.Template) error {
+func (f *Database) ParseTemplates(original *template.Template) error {
 	f.mux.Lock()
 	defer f.mux.Unlock()
 	for key, value := range f.Templates {
@@ -31,16 +32,16 @@ func (f *GitControlledTemplateDatabase) ParseTemplates(original *template.Templa
 }
 
 // Fetch a template based on it's path
-func (f *GitControlledTemplateDatabase) FindTemplate(path string) (string, error) {
+func (f *Database) FindTemplate(path string) (string, error) {
 	f.mux.Lock()
 	defer f.mux.Unlock()
 	if result, ok := f.Templates[path]; ok {
 		return result, nil
 	}
-	return "", &TemplateNotFound{path}
+	return "", &render.TemplateNotFound{Path: path}
 }
 
-func (f *GitControlledTemplateDatabase) load() error {
+func (f *Database) load() error {
 	log.Printf("Loading template files from %s", f.rootPath)
 
 	pfx := len(f.rootPath) + 1
@@ -69,7 +70,7 @@ func (f *GitControlledTemplateDatabase) load() error {
 	return err
 }
 
-func (f *GitControlledTemplateDatabase) OnEvent(e interface{}) error {
+func (f *Database) OnEvent(e interface{}) error {
 	if _, ok := e.(*event.Checkout); ok {
 		if err := f.load(); err != nil {
 			return err
@@ -78,8 +79,8 @@ func (f *GitControlledTemplateDatabase) OnEvent(e interface{}) error {
 	return nil
 }
 
-func NewTemplateDatabase(bus *event.Bus, rootPath string) TemplateDatabase {
-	impl := &GitControlledTemplateDatabase{
+func NewDatabase(bus *event.Bus, rootPath string) render.TemplateDatabase {
+	impl := &Database{
 		rootPath:  rootPath,
 		mux:       sync.Mutex{},
 		Templates: make(map[string]string),
