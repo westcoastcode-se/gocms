@@ -61,15 +61,15 @@ func (p *PermanentCache) IsAllowed(path string) bool {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
-	var whitelised = false
+	var whitelisted = false
 	for _, prefix := range p.database.Whitelist {
 		if strings.HasPrefix(path, prefix) {
-			whitelised = true
+			whitelisted = true
 			break
 		}
 	}
 
-	if !whitelised {
+	if !whitelisted {
 		return false
 	}
 
@@ -103,7 +103,8 @@ func (p *PermanentCache) load() error {
 	return nil
 }
 
-// Create a new permanent cache
+// Create a new permanent cache. The only way to reset the cache is when the underlying content
+// is updated. This is managed by listening for specific events on the event bus.
 func NewPermanentCache(bus *event.Bus, databasePath string) *PermanentCache {
 	impl := &PermanentCache{
 		data:         make(map[string][]byte),

@@ -107,7 +107,7 @@ func (r *RepositoryImpl) FindByPath(path string) (*Model, error) {
 	}
 
 	return &Model{
-		View:    "errors/404",
+		View:    "views/errors/404.html",
 		Title:   "404",
 		Content: nil,
 	}, NewNotFoundError(path)

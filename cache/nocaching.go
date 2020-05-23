@@ -18,6 +18,7 @@ func (n NoCaching) IsAllowed(path string) bool {
 func (n NoCaching) Reset() {
 }
 
+// Create a cache that do not cache anything
 func NewNoCaching() *NoCaching {
 	return &NoCaching{}
 }
