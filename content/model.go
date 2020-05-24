@@ -15,9 +15,6 @@ type Model struct {
 	// Type type
 	Type string
 
-	// The title (TODO: Remove)
-	Title string
-
 	// The actual content
 	Content interface{}
 }

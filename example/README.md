@@ -9,7 +9,15 @@ The example shows how:
 * Urls cached when running in public mode
 * Search for specific page types and list them dynamically (news)
 
-## Start
+## Start the example
+
+### Start
+
+Start the main.go and make sure to set the "example" folder as the home directory
+
+## Create a new project
+
+[Getting started](../doc/getting_started.md)
 
 ### Certificate 
 
@@ -23,8 +31,3 @@ You can generate a certificate with:
 openssl req -x509 -newkey rsa:4096 -nodes -out cert.pem -keyout key.pem -days 365 && \
     openssl rsa -in key.pem -pubout > key.pub
 ```
-
-### Start
-
-Start the main.go and make sure to set the "example" folder as the home directory
-

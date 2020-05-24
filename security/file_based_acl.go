@@ -18,7 +18,6 @@ type aclEntryBody struct {
 	Access []aclEntry
 }
 
-//
 type fileBasedACL struct {
 	databasePath string
 	mux          sync.Mutex
@@ -48,18 +47,16 @@ func (f *fileBasedACL) GetRoles(uri string) []string {
 }
 
 func (f *fileBasedACL) load() error {
-	log.Printf(`Loading ACL from "%s"` + "\n", f.databasePath)
+	log.Printf(`Loading ACL from "%s"`+"\n", f.databasePath)
 	bytes, err := ioutil.ReadFile(f.databasePath)
 	if err != nil {
-		log.Printf(`Could not read database file "%s". Reason: %e\n`, f.databasePath, err)
-		return err
+		return NewLoadError("Could not read database file: '%s' because: %e", f.databasePath, err)
 	}
 
 	var body aclEntryBody
 	err = json.Unmarshal(bytes, &body)
 	if err != nil {
-		log.Printf(`Could not parse database "%s". Reason: %e\n`, f.databasePath, err)
-		return err
+		return NewLoadError("Could not parse database file: '%s' because: %e", f.databasePath, err)
 	}
 
 	var database = make(map[string]aclEntry)

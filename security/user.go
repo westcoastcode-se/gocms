@@ -1,7 +1,10 @@
 package security
 
+// Represents a user
 type User struct {
-	Name  string
+	// The name of the user
+	Name string
+	// The roles the user has access too
 	Roles []string
 }
 

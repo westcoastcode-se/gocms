@@ -12,7 +12,7 @@ Under construction
 
 ## Example
 
-You can see a very simple example on the [example](example/README.md) directory.
+You can see a very simple example on the [example](example) directory.
 
 ## Best practices
 

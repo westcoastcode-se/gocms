@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"github.com/westcoastcode-se/gocms/event"
 	"io/ioutil"
-	"log"
 	"sync"
 )
 
@@ -19,7 +18,7 @@ type userDatabaseBody struct {
 	Users []userDatabaseUser
 }
 
-type loginServiceImpl struct {
+type fileBasedLoginService struct {
 	Users        []userDatabaseUser
 	databasePath string
 	mux          sync.Mutex
@@ -28,7 +27,7 @@ type loginServiceImpl struct {
 	privateKey string
 }
 
-func (s *loginServiceImpl) OnEvent(e interface{}) error {
+func (s *fileBasedLoginService) OnEvent(e interface{}) error {
 	if _, ok := e.(*event.Checkout); ok {
 		if err := s.load(); err != nil {
 			return err
@@ -37,7 +36,7 @@ func (s *loginServiceImpl) OnEvent(e interface{}) error {
 	return nil
 }
 
-func (s *loginServiceImpl) Login(username string, password string) (*User, error) {
+func (s *fileBasedLoginService) Login(username string, password string) (*User, error) {
 	encoded := base64.StdEncoding.EncodeToString([]byte(password))
 	s.mux.Lock()
 	defer s.mux.Unlock()
@@ -55,18 +54,16 @@ func (s *loginServiceImpl) Login(username string, password string) (*User, error
 	}, &UserNotFound{username}
 }
 
-func (s *loginServiceImpl) load() error {
+func (s *fileBasedLoginService) load() error {
 	bytes, err := ioutil.ReadFile(s.databasePath)
 	if err != nil {
-		log.Printf(`Could not read database file "%s". Reason: %e\n`, s.databasePath, err)
-		return err
+		return NewLoadError("could not read database file: '%s' because: '%e'", s.databasePath, err)
 	}
 
 	var body userDatabaseBody
 	err = json.Unmarshal(bytes, &body)
 	if err != nil {
-		log.Printf(`Could not parse database "%s". Reason: %e\n`, s.databasePath, err)
-		return err
+		return NewLoadError("could not parse database file: '%s' because: '%e'", s.databasePath, err)
 	}
 
 	var users []userDatabaseUser
@@ -86,7 +83,7 @@ func (s *loginServiceImpl) load() error {
 
 // Create a login service
 func NewLoginService(bus *event.Bus, userDatabase string) LoginService {
-	impl := &loginServiceImpl{
+	impl := &fileBasedLoginService{
 		databasePath: userDatabase,
 	}
 	if len(userDatabase) > 0 {

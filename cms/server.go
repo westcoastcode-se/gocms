@@ -1,6 +1,8 @@
 package cms
 
 import (
+	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 	"github.com/westcoastcode-se/gocms/cache"
 	"github.com/westcoastcode-se/gocms/config"
 	"github.com/westcoastcode-se/gocms/content"
@@ -114,12 +116,35 @@ func (s *Server) ServeTemplate(rw http.ResponseWriter, r *http.Request) {
 	})).ServeHTTP(rw, r)
 }
 
+// Figure out the IP address from the incoming request
+func getIpAddress(r *http.Request) string {
+	forwarded := r.Header.Get("X-Forwarded-For")
+	if forwarded != "" {
+		return forwarded
+	}
+	return r.RemoteAddr
+}
+
 func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-	DefaultURI(
-		WithLogging(
-			Security(s.Tokenizer,
-				Authorize(s.ACL,
-					http.HandlerFunc(s.ServeTemplate))))).ServeHTTP(rw, r)
+	if r.URL.Path == "/" {
+		r.URL.Path = "/index"
+	}
+
+	logger := logrus.WithField("id", uuid.New().String())
+	start := time.Now()
+	defer func() {
+		diff := time.Since(start)
+		logger.WithFields(logrus.Fields{
+			"uri":     r.RequestURI,
+			"method":  r.Method,
+			"remote":  getIpAddress(r),
+			"elapsed": diff,
+		}).Info()
+	}()
+
+	Security(s.Tokenizer,
+		Authorize(s.ACL,
+			http.HandlerFunc(s.ServeTemplate))).ServeHTTP(rw, r)
 }
 
 func (s *Server) handleBuiltIn(ctx *RequestContext) bool {

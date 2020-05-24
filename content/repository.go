@@ -20,7 +20,6 @@ type pageData struct {
 	CreatedAt time.Time
 	View      string
 	Type      string
-	Title     string
 	Content   json.RawMessage
 }
 
@@ -80,7 +79,6 @@ func (r *RepositoryImpl) Save(p string, model *Model) (*Model, error) {
 		model.CreatedAt,
 		model.View,
 		model.Type,
-		model.Title,
 		contentJson,
 	}
 	b, err := json.Marshal(output)
@@ -108,7 +106,6 @@ func (r *RepositoryImpl) FindByPath(path string) (*Model, error) {
 
 	return &Model{
 		View:    "views/errors/404.html",
-		Title:   "404",
 		Content: nil,
 	}, NewNotFoundError(path)
 }
@@ -175,7 +172,6 @@ func (r *RepositoryImpl) unmarshal(path string, str string) (*Model, error) {
 		CreatedAt: raw.CreatedAt,
 		View:      raw.View,
 		Type:      raw.Type,
-		Title:     raw.Title,
 		Content:   content,
 	}, nil
 }
