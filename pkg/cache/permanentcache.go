@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/westcoastcode-se/gocms/pkg/event"
 	"io/ioutil"
@@ -45,7 +46,7 @@ func (p *PermanentCache) Reset() {
 	p.data = make(map[string][]byte)
 }
 
-func (p *PermanentCache) OnEvent(e interface{}) error {
+func (p *PermanentCache) OnEvent(ctx context.Context, e interface{}) error {
 	if _, ok := e.(*event.Checkout); ok {
 		err := p.load()
 		if err != nil {

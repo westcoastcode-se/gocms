@@ -1,6 +1,7 @@
 package security
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"github.com/westcoastcode-se/gocms/pkg/event"
@@ -27,7 +28,7 @@ type fileBasedLoginService struct {
 	privateKey string
 }
 
-func (s *fileBasedLoginService) OnEvent(e interface{}) error {
+func (s *fileBasedLoginService) OnEvent(ctx context.Context, e interface{}) error {
 	if _, ok := e.(*event.Checkout); ok {
 		if err := s.load(); err != nil {
 			return err

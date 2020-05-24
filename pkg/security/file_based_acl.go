@@ -1,10 +1,11 @@
 package security
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/westcoastcode-se/gocms/pkg/event"
+	"github.com/westcoastcode-se/gocms/pkg/log"
 	"io/ioutil"
-	"log"
 	"strings"
 	"sync"
 )
@@ -46,8 +47,8 @@ func (f *fileBasedACL) GetRoles(uri string) []string {
 	return roles
 }
 
-func (f *fileBasedACL) load() error {
-	log.Printf(`Loading ACL from "%s"`+"\n", f.databasePath)
+func (f *fileBasedACL) load(ctx context.Context) error {
+	log.Infof(ctx, "Loading ACL from %s", f.databasePath)
 	bytes, err := ioutil.ReadFile(f.databasePath)
 	if err != nil {
 		return NewLoadError("Could not read database file: '%s' because: %e", f.databasePath, err)
@@ -70,9 +71,9 @@ func (f *fileBasedACL) load() error {
 	return nil
 }
 
-func (f *fileBasedACL) OnEvent(e interface{}) error {
+func (f *fileBasedACL) OnEvent(ctx context.Context, e interface{}) error {
 	if _, ok := e.(*event.Checkout); ok {
-		if err := f.load(); err != nil {
+		if err := f.load(ctx); err != nil {
 			return err
 		}
 	}
@@ -87,7 +88,7 @@ func NewFileBasedACL(bus *event.Bus, path string) ACL {
 		Database:     make(map[string]aclEntry),
 	}
 	if len(path) > 0 {
-		err := impl.load()
+		err := impl.load(context.Background())
 		if err != nil {
 			panic(err)
 		}

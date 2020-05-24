@@ -1,5 +1,7 @@
 package event
 
+import "context"
+
 type Bus struct {
 	listeners []Listener
 }
@@ -11,9 +13,9 @@ func (b Bus) AddListener(listener Listener) {
 
 // Notify all listeners that a new event is sent. The event propagation will be aborted
 // when the first listener returns an error
-func (b *Bus) NotifyAll(e interface{}) error {
+func (b *Bus) NotifyAll(ctx context.Context, e interface{}) error {
 	for _, l := range b.listeners {
-		if err := l.OnEvent(e); err != nil {
+		if err := l.OnEvent(ctx, e); err != nil {
 			return err
 		}
 	}

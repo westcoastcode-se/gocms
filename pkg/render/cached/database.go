@@ -1,11 +1,12 @@
 package cached
 
 import (
+	"context"
 	"github.com/westcoastcode-se/gocms/pkg/event"
+	"github.com/westcoastcode-se/gocms/pkg/log"
 	"github.com/westcoastcode-se/gocms/pkg/render"
 	"html/template"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -41,9 +42,9 @@ func (f *Database) FindTemplate(path string) (string, error) {
 	return "", &render.TemplateNotFound{Path: path}
 }
 
-func (f *Database) load() error {
-	log.Printf("Loading template files from %s", f.rootPath)
-
+func (f *Database) load(ctx context.Context) error {
+	log := log.FromContext(ctx)
+	log.Infof("Loading template files from %s", f.rootPath)
 	pfx := len(f.rootPath) + 1
 	templates := make(map[string]string)
 	err := filepath.Walk(f.rootPath, func(path string, info os.FileInfo, e1 error) error {
@@ -60,7 +61,7 @@ func (f *Database) load() error {
 			name := path[pfx:]
 			name = filepath.ToSlash(name)
 			templates[name] = string(b)
-			log.Printf("Loaded template file: %s", name)
+			log.Infof("Loaded template file: %s", name)
 		}
 		return nil
 	})
@@ -70,9 +71,9 @@ func (f *Database) load() error {
 	return err
 }
 
-func (f *Database) OnEvent(e interface{}) error {
+func (f *Database) OnEvent(ctx context.Context, e interface{}) error {
 	if _, ok := e.(*event.Checkout); ok {
-		if err := f.load(); err != nil {
+		if err := f.load(ctx); err != nil {
 			return err
 		}
 	}
@@ -86,7 +87,7 @@ func NewDatabase(bus *event.Bus, rootPath string) render.TemplateDatabase {
 		Templates: make(map[string]string),
 	}
 	if len(rootPath) > 0 {
-		err := impl.load()
+		err := impl.load(context.Background())
 		if err != nil {
 			panic(err)
 		}

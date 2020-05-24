@@ -1,6 +1,7 @@
 package content
 
 import (
+	"context"
 	"github.com/westcoastcode-se/gocms/pkg/event"
 	"os/exec"
 )
@@ -10,22 +11,22 @@ type GitController struct {
 	RootPath string
 }
 
-func (g *GitController) Update(commit string) error {
+func (g *GitController) Update(ctx context.Context, commit string) error {
 	err := g.Pull()
 	if err != nil {
 		return err
 	}
 
-	return g.Checkout(commit)
+	return g.Checkout(ctx, commit)
 }
 
-func (g *GitController) Save(message string) error {
+func (g *GitController) Save(ctx context.Context, message string) error {
 	err := g.Commit(message)
 	if err != nil {
 		return err
 	}
 
-	return g.Push()
+	return g.Push(ctx)
 }
 
 func (g *GitController) Pull() error {
@@ -35,7 +36,7 @@ func (g *GitController) Pull() error {
 }
 
 // Checkout the supplied commit and notify all listeners that
-func (g *GitController) Checkout(commit string) error {
+func (g *GitController) Checkout(ctx context.Context, commit string) error {
 	cmd := exec.Command("git", "checkout", commit)
 	cmd.Dir = g.RootPath
 	if err := cmd.Run(); err != nil {
@@ -43,7 +44,7 @@ func (g *GitController) Checkout(commit string) error {
 	}
 
 	// NotifyAll next event that a checkout has happened
-	if err := g.bus.NotifyAll(&event.Checkout{Commit: commit}); err != nil {
+	if err := g.bus.NotifyAll(ctx, &event.Checkout{Commit: commit}); err != nil {
 		return err
 	}
 
@@ -56,7 +57,7 @@ func (g *GitController) Commit(message string) error {
 	return cmd.Run()
 }
 
-func (g *GitController) Push() error {
+func (g *GitController) Push(ctx context.Context) error {
 	cmd := exec.Command("git", "push")
 	cmd.Dir = g.RootPath
 	if err := cmd.Run(); err != nil {
@@ -64,7 +65,7 @@ func (g *GitController) Push() error {
 	}
 
 	// NotifyAll next event that a checkout has happened
-	if err := g.bus.NotifyAll(&event.Push{}); err != nil {
+	if err := g.bus.NotifyAll(ctx, &event.Push{}); err != nil {
 		return err
 	}
 

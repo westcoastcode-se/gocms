@@ -1,14 +1,17 @@
 package main
 
 import (
+	"github.com/sirupsen/logrus"
 	"github.com/westcoastcode-se/gocms/pkg/cms"
 	"github.com/westcoastcode-se/gocms/pkg/config"
 	"log"
 )
 
 func main() {
+	logrus.SetReportCaller(true)
+
 	log.SetFlags(log.Llongfile | log.LstdFlags)
-	log.Println("Starting public web")
+	logrus.Info("Starting public web")
 
 	// Create the server
 	config := config.GetConfig()
@@ -23,5 +26,5 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println("Stopped public web")
+	logrus.Info("Stopped public web")
 }

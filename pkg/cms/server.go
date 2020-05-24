@@ -8,13 +8,14 @@ import (
 	"github.com/westcoastcode-se/gocms/pkg/config"
 	"github.com/westcoastcode-se/gocms/pkg/content"
 	"github.com/westcoastcode-se/gocms/pkg/event"
+	"github.com/westcoastcode-se/gocms/pkg/log"
 	. "github.com/westcoastcode-se/gocms/pkg/middleware"
 	"github.com/westcoastcode-se/gocms/pkg/render"
 	"github.com/westcoastcode-se/gocms/pkg/render/cached"
 	"github.com/westcoastcode-se/gocms/pkg/render/immediate"
 	"github.com/westcoastcode-se/gocms/pkg/security"
-	"log"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -99,7 +100,7 @@ func (s *Server) ServeTemplate(rw http.ResponseWriter, r *http.Request) {
 		t, err := renderCtx.GetTemplate()
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
-			log.Print(err)
+			log.LogFromRequest(r).Warn(err.Error())
 			return
 		}
 
@@ -112,7 +113,7 @@ func (s *Server) ServeTemplate(rw http.ResponseWriter, r *http.Request) {
 		err = t.ExecuteTemplate(rw, "index.html", model)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
-			log.Print(err)
+			log.LogFromRequest(r).Warn(err.Error())
 		}
 	})).ServeHTTP(rw, r)
 }
@@ -134,24 +135,26 @@ func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	requestId := uuid.New().String()
-	r = r.WithContext(context.WithValue(r.Context(), ContextKeyRequestID, requestId))
+	r = r.WithContext(log.SetRequestID(r.Context(), requestId))
+
 	token, err := r.Cookie(security.SessionKey)
 	var user *security.User
 	if err == nil && token.Value != "" {
 		user, err = s.Tokenizer.TokenToUser(token.Value)
 		if err != nil {
-			log.Printf("User token could not be loaded. Reason %e\n", err)
+			log.LogFromRequest(r).Warnf("User token could not be loaded. Reason %e", err)
 		}
 	}
 	if user == nil {
 		user = security.NotLoggedInUser
 	}
+
 	r = r.WithContext(context.WithValue(r.Context(), security.SessionKey, user))
+	r = r.WithContext(log.SetUserName(r.Context(), user.Name))
 
 	defer func() {
 		diff := time.Since(start)
-		log.Printf("")
-		LogFromRequest(r).WithFields(logrus.Fields{
+		log.LogFromRequest(r).WithFields(logrus.Fields{
 			"uri":     r.RequestURI,
 			"method":  r.Method,
 			"remote":  getIpAddress(r),
@@ -159,8 +162,14 @@ func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		}).Info()
 	}()
 
-	Authorize(s.ACL,
-		http.HandlerFunc(s.ServeTemplate)).ServeHTTP(rw, r)
+	uri := r.URL.Path
+	roles := s.ACL.GetRoles(uri)
+	if !user.HasRoles(roles) {
+		http.Redirect(rw, r, "/login?redirect="+url.QueryEscape(uri), http.StatusTemporaryRedirect)
+		return
+	}
+
+	s.ServeTemplate(rw, r)
 }
 
 func (s *Server) handleBuiltIn(ctx *RequestContext) bool {
@@ -227,12 +236,12 @@ func (s *Server) Handle(prefix string, handler RequestHandler) {
 }
 
 func (s *Server) ListenAndServe() error {
-	err := s.ContentRepository.Reload()
+	err := s.ContentRepository.Reload(context.Background())
 	if err != nil {
 		panic(err)
 	}
 
-	log.Printf("Listening for connections on %s\n", s.server.Addr)
+	log.Infof(context.Background(), "Listening for connections on %s", s.server.Addr)
 	return s.server.ListenAndServe()
 }
 

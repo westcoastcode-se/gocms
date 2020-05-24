@@ -36,7 +36,7 @@ func checkout(controller content.Controller, ctx *RequestContext) {
 			return
 		}
 
-		err = controller.Update(body.Commit)
+		err = controller.Update(ctx.Request.Context(), body.Commit)
 		if err != nil {
 			log.Printf(`Could not pull content from remove server. Reason: %e`, err)
 			returnErrorResponse(rw, http.StatusInternalServerError, "Could not checkout: "+body.Commit)

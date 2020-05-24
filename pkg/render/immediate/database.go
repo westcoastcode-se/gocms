@@ -4,7 +4,6 @@ import (
 	"github.com/westcoastcode-se/gocms/pkg/render"
 	"html/template"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -31,7 +30,6 @@ func (f *Database) ParseTemplates(original *template.Template) error {
 			name := path[pfx:]
 			name = filepath.ToSlash(name)
 			templates[name] = string(b)
-			log.Printf("Loaded template file: %s", name)
 		}
 		return nil
 	})

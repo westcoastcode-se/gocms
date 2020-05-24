@@ -1,12 +1,13 @@
 package content
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/google/uuid"
 	"github.com/westcoastcode-se/gocms/pkg/event"
+	"github.com/westcoastcode-se/gocms/pkg/log"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -33,13 +34,14 @@ type Repository interface {
 	RegisterModelType(name string, fn UnmarshalContentFunc)
 
 	// Save the supplied model. If the save failed for some reason then an error will be returned
-	Save(path string, model *Model) (*Model, error)
+	Save(ctx context.Context, path string, model *Model) (*Model, error)
 
 	// Search for the model associated with the supplied path. The repository will return an error and the default
 	// 404 model if the supplied path is not found.
 	FindByPath(path string) (*Model, error)
 
-	Reload() error
+	//
+	Reload(ctx context.Context) error
 
 	// Search for content with the supplied content type.
 	Search(contentType string) []*SearchResult
@@ -62,7 +64,7 @@ func (r *RepositoryImpl) RegisterModelType(view string, fn UnmarshalContentFunc)
 	r.Types[view] = fn
 }
 
-func (r *RepositoryImpl) Save(p string, model *Model) (*Model, error) {
+func (r *RepositoryImpl) Save(ctx context.Context, p string, model *Model) (*Model, error) {
 	var id = model.ID
 	if id == "" {
 		id = uuid.New().String()
@@ -92,7 +94,7 @@ func (r *RepositoryImpl) Save(p string, model *Model) (*Model, error) {
 		return nil, err
 	}
 
-	log.Printf("Sucessfully saved %s\n", p)
+	log.Infof(ctx, "Sucessfully saved %s", p)
 	model.ID = id
 	return model, nil
 }
@@ -110,8 +112,8 @@ func (r *RepositoryImpl) FindByPath(path string) (*Model, error) {
 	}, NewNotFoundError(path)
 }
 
-func (r *RepositoryImpl) Reload() error {
-	log.Printf("Reloading content from dir \"%s\"", r.rootPath)
+func (r *RepositoryImpl) Reload(ctx context.Context) error {
+	log.Infof(ctx, "Reloading content from dir %s", r.rootPath)
 
 	var models = make(map[string]*Model)
 	_ = filepath.Walk(r.rootPath, func(path string, info os.FileInfo, err error) error {
@@ -119,20 +121,20 @@ func (r *RepositoryImpl) Reload() error {
 			if filepath.Ext(path) == ".json" {
 				file, err := os.Open(path)
 				if err != nil {
-					log.Print(err)
+					log.Errorf(ctx, "Could not open: %s. %e", path, err)
 					return nil
 				}
 				defer file.Close()
 
 				b, err := ioutil.ReadAll(file)
 				if err != nil {
-					log.Print(err)
+					log.Errorf(ctx, "Could not read content from: %s. %e", path, err)
 					return nil
 				}
 
 				model, err := r.unmarshal(path, string(b))
 				if err != nil {
-					log.Print(err)
+					log.Errorf(ctx, "Could not unmarshal content from: %s. %e", path, err)
 					return nil
 				}
 
@@ -140,7 +142,7 @@ func (r *RepositoryImpl) Reload() error {
 				path = strings.ToLower(path)
 				path = strings.Replace(path, "\\", "/", -1)
 				models[path] = model
-				log.Printf(`Loaded "%s"`+"\n", path)
+				log.Infof(ctx, "Loaded %s", path)
 			}
 		}
 		return nil
@@ -176,9 +178,9 @@ func (r *RepositoryImpl) unmarshal(path string, str string) (*Model, error) {
 	}, nil
 }
 
-func (r *RepositoryImpl) OnEvent(e interface{}) error {
+func (r *RepositoryImpl) OnEvent(ctx context.Context, e interface{}) error {
 	if _, ok := e.(*event.Checkout); ok {
-		if err := r.Reload(); err != nil {
+		if err := r.Reload(ctx); err != nil {
 			return err
 		}
 	}
