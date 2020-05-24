@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"github.com/westcoastcode-se/gocms/security"
+	"github.com/westcoastcode-se/gocms/pkg/security"
 	"net/http"
 	"net/url"
 )

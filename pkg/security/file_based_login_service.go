@@ -3,7 +3,7 @@ package security
 import (
 	"encoding/base64"
 	"encoding/json"
-	"github.com/westcoastcode-se/gocms/event"
+	"github.com/westcoastcode-se/gocms/pkg/event"
 	"io/ioutil"
 	"sync"
 )

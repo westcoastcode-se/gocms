@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"bytes"
-	"github.com/westcoastcode-se/gocms/cache"
+	"github.com/westcoastcode-se/gocms/pkg/cache"
 	"net/http"
 	"strconv"
 )

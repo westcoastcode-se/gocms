@@ -2,7 +2,7 @@ package render
 
 import (
 	"bytes"
-	"github.com/westcoastcode-se/gocms/content"
+	"github.com/westcoastcode-se/gocms/pkg/content"
 	"html/template"
 	"log"
 )

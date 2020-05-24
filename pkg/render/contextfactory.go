@@ -1,9 +1,9 @@
 package render
 
 import (
-	"github.com/westcoastcode-se/gocms/config"
-	"github.com/westcoastcode-se/gocms/content"
-	"github.com/westcoastcode-se/gocms/security"
+	"github.com/westcoastcode-se/gocms/pkg/config"
+	"github.com/westcoastcode-se/gocms/pkg/content"
+	"github.com/westcoastcode-se/gocms/pkg/security"
 	"html/template"
 	"io/ioutil"
 	"log"

@@ -2,7 +2,7 @@ package cms
 
 import (
 	"encoding/json"
-	"github.com/westcoastcode-se/gocms/content"
+	"github.com/westcoastcode-se/gocms/pkg/content"
 	"net/http"
 )
 

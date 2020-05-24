@@ -2,7 +2,7 @@ package cache
 
 import (
 	"encoding/json"
-	"github.com/westcoastcode-se/gocms/event"
+	"github.com/westcoastcode-se/gocms/pkg/event"
 	"io/ioutil"
 	"log"
 	"strings"

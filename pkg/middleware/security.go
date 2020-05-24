@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"context"
-	"github.com/westcoastcode-se/gocms/security"
+	"github.com/westcoastcode-se/gocms/pkg/security"
 	"log"
 	"net/http"
 )

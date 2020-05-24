@@ -1,7 +1,7 @@
 package content
 
 import (
-	"github.com/westcoastcode-se/gocms/event"
+	"github.com/westcoastcode-se/gocms/pkg/event"
 	"os/exec"
 )
 

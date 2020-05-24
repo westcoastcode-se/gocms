@@ -1,8 +1,8 @@
 package cached
 
 import (
-	"github.com/westcoastcode-se/gocms/event"
-	"github.com/westcoastcode-se/gocms/render"
+	"github.com/westcoastcode-se/gocms/pkg/event"
+	"github.com/westcoastcode-se/gocms/pkg/render"
 	"html/template"
 	"io/ioutil"
 	"log"

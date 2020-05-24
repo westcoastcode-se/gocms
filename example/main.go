@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/westcoastcode-se/gocms/cms"
-	"github.com/westcoastcode-se/gocms/config"
+	"github.com/westcoastcode-se/gocms/pkg/cms"
+	"github.com/westcoastcode-se/gocms/pkg/config"
 	"log"
 )
 
