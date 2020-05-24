@@ -1,6 +1,7 @@
 package cms
 
 import (
+	"context"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/westcoastcode-se/gocms/pkg/cache"
@@ -126,15 +127,31 @@ func getIpAddress(r *http.Request) string {
 }
 
 func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+
 	if r.URL.Path == "/" {
 		r.URL.Path = "/index"
 	}
 
-	logger := logrus.WithField("id", uuid.New().String())
-	start := time.Now()
+	requestId := uuid.New().String()
+	r = r.WithContext(context.WithValue(r.Context(), ContextKeyRequestID, requestId))
+	token, err := r.Cookie(security.SessionKey)
+	var user *security.User
+	if err == nil && token.Value != "" {
+		user, err = s.Tokenizer.TokenToUser(token.Value)
+		if err != nil {
+			log.Printf("User token could not be loaded. Reason %e\n", err)
+		}
+	}
+	if user == nil {
+		user = security.NotLoggedInUser
+	}
+	r = r.WithContext(context.WithValue(r.Context(), security.SessionKey, user))
+
 	defer func() {
 		diff := time.Since(start)
-		logger.WithFields(logrus.Fields{
+		log.Printf("")
+		LogFromRequest(r).WithFields(logrus.Fields{
 			"uri":     r.RequestURI,
 			"method":  r.Method,
 			"remote":  getIpAddress(r),
@@ -142,9 +159,8 @@ func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		}).Info()
 	}()
 
-	Security(s.Tokenizer,
-		Authorize(s.ACL,
-			http.HandlerFunc(s.ServeTemplate))).ServeHTTP(rw, r)
+	Authorize(s.ACL,
+		http.HandlerFunc(s.ServeTemplate)).ServeHTTP(rw, r)
 }
 
 func (s *Server) handleBuiltIn(ctx *RequestContext) bool {
