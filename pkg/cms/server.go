@@ -96,24 +96,19 @@ func (s *Server) ServeTemplate(rw http.ResponseWriter, r *http.Request) {
 		// Create a new context used when rendering the template
 		renderCtx := s.ContextFactory.Create(r, model)
 
-		// Fetch a template that matches the view and url
-		t, err := renderCtx.GetTemplate()
-		if err != nil {
-			http.Error(rw, err.Error(), http.StatusInternalServerError)
-			log.LogFromRequest(r).Warn(err.Error())
-			return
-		}
-
+		// Set http status
 		if pageNotFound != nil {
 			rw.WriteHeader(http.StatusNotFound)
 		} else {
 			rw.WriteHeader(http.StatusOK)
 		}
 
-		err = t.ExecuteTemplate(rw, "index.html", model)
+		// Fetch a template that matches the view and url
+		err := renderCtx.RenderView(rw, "index.html", model)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			log.LogFromRequest(r).Warn(err.Error())
+			return
 		}
 	})).ServeHTTP(rw, r)
 }

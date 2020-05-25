@@ -2,8 +2,8 @@ package cms
 
 import (
 	"encoding/json"
+	"github.com/westcoastcode-se/gocms/pkg/log"
 	"github.com/westcoastcode-se/gocms/pkg/security"
-	"log"
 	"net/http"
 )
 
@@ -24,21 +24,22 @@ func login(loginService security.LoginService, tokenizer security.Tokenizer, ctx
 	defer ctx.Request.Body.Close()
 	rw := ctx.Response
 	if err != nil {
-		log.Print("could not parse request. Reason: " + err.Error())
+		log.Warnf(ctx.Request.Context(), "Could not parse request: %e", err.Error())
 		returnErrorResponse(rw, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
 
+	log.Infof(ctx.Request.Context(), "Trying to logging in user: %s", body.Username)
 	user, err := loginService.Login(body.Username, body.Password)
 	if err != nil {
-		log.Print("invalid username or password for user: " + body.Username)
+		log.Warnf(ctx.Request.Context(), "Invalid username or password for user: %e", err.Error())
 		returnErrorResponse(rw, http.StatusUnauthorized, "Invalid username or password")
 		return
 	}
 
 	result, err := tokenizer.UserToToken(user)
 	if err != nil {
-		log.Print("could not create token from user. Reason: " + err.Error())
+		log.Warnf(ctx.Request.Context(), "Could not create token for user: %e", err.Error())
 		returnErrorResponse(rw, http.StatusInternalServerError, "Internal Server Error")
 		return
 	}
@@ -50,6 +51,7 @@ func login(loginService security.LoginService, tokenizer security.Tokenizer, ctx
 		return
 	}
 
+	log.Infof(ctx.Request.Context(), "User: %s has successfully logged in", body.Username)
 	rw.Header().Set("Content-Type", "application/json")
 	http.SetCookie(rw, &http.Cookie{Name: security.SessionKey, Value: result, Path: "/", MaxAge: 60 * 60})
 	rw.WriteHeader(http.StatusOK)

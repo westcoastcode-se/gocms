@@ -3,8 +3,8 @@ package cms
 import (
 	"encoding/json"
 	"github.com/westcoastcode-se/gocms/pkg/content"
+	"github.com/westcoastcode-se/gocms/pkg/log"
 	"github.com/westcoastcode-se/gocms/pkg/security"
-	"log"
 	"net/http"
 )
 
@@ -31,14 +31,14 @@ func checkout(controller content.Controller, ctx *RequestContext) {
 		err := decoder.Decode(&body)
 		defer ctx.Request.Body.Close()
 		if err != nil {
-			log.Printf("Could not checkout content. Reason: %e", err)
+			log.Warnf(ctx.Request.Context(), "Could not checkout content: %e", err)
 			returnErrorResponse(rw, http.StatusInternalServerError, "Could not checkout new content")
 			return
 		}
 
 		err = controller.Update(ctx.Request.Context(), body.Commit)
 		if err != nil {
-			log.Printf(`Could not pull content from remove server. Reason: %e`, err)
+			log.Warnf(ctx.Request.Context(), "Could not pull content from remove server: %e", err)
 			returnErrorResponse(rw, http.StatusInternalServerError, "Could not checkout: "+body.Commit)
 			return
 		}

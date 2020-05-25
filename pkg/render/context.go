@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/westcoastcode-se/gocms/pkg/content"
 	"html/template"
+	"io"
 	"log"
 )
 
@@ -13,18 +14,12 @@ type Context struct {
 	templateDatabase TemplateDatabase
 }
 
-func (c *Context) GetTemplate() (*template.Template, error) {
+func (c *Context) RenderView(bw io.Writer, view string, model interface{}) error {
 	t := template.New("").Funcs(c.Funcs).Funcs(template.FuncMap{
 		"RenderView": func(view string, data interface{}) (template.HTML, error) {
-			innerTemplate, err := c.GetTemplate()
-
-			if err != nil {
-				log.Print("failed to render inner template: " + err.Error())
-				return "", nil
-			}
-
 			buf := bytes.NewBuffer([]byte{})
-			err = innerTemplate.ExecuteTemplate(buf, view, data)
+			err := c.RenderView(buf, view, data)
+
 			if err != nil {
 				log.Print("failed to render inner template: " + err.Error())
 				return "", nil
@@ -35,8 +30,13 @@ func (c *Context) GetTemplate() (*template.Template, error) {
 
 	err := c.templateDatabase.ParseTemplates(t)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return t, nil
+	err = t.ExecuteTemplate(bw, view, model)
+	if err != nil {
+		log.Print("failed to render inner template: " + err.Error())
+		return err
+	}
+	return nil
 }

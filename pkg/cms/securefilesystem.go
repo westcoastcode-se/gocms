@@ -5,6 +5,8 @@ import (
 	"net/http"
 )
 
+var CannotDisplayDirectories = errors.New("cannot display directories")
+
 // Customized FileSystem to prevent listing of files for static files
 type SecureFileSystem struct {
 	fs http.FileSystem
@@ -18,7 +20,7 @@ func (fs SecureFileSystem) Open(path string) (http.File, error) {
 
 	s, err := f.Stat()
 	if s.IsDir() {
-		return nil, errors.New("cannot display directories")
+		return nil, CannotDisplayDirectories
 	}
 
 	return f, nil
