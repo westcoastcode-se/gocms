@@ -47,7 +47,7 @@ func Cache(cache cache.Pages, next http.Handler) http.Handler {
 		wrapper := &cachedResponseWriter{
 			header:     make(http.Header),
 			buffer:     bytes.Buffer{},
-			statusCode: 0,
+			statusCode: 200,
 		}
 		next.ServeHTTP(wrapper, r)
 
