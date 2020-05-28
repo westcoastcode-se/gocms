@@ -5,6 +5,7 @@ import (
 	"github.com/westcoastcode-se/gocms/pkg/event"
 	"github.com/westcoastcode-se/gocms/pkg/log"
 	"github.com/westcoastcode-se/gocms/pkg/render"
+	"github.com/westcoastcode-se/gocms/pkg/render/html"
 	"html/template"
 	"io/ioutil"
 	"os"
@@ -80,7 +81,7 @@ func (f *Database) OnEvent(ctx context.Context, e interface{}) error {
 	return nil
 }
 
-func NewDatabase(bus *event.Bus, rootPath string) render.TemplateDatabase {
+func NewDatabase(bus *event.Bus, rootPath string) html.TemplateDatabase {
 	impl := &Database{
 		rootPath:  rootPath,
 		mux:       sync.Mutex{},

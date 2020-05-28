@@ -11,8 +11,9 @@ import (
 	"github.com/westcoastcode-se/gocms/pkg/log"
 	. "github.com/westcoastcode-se/gocms/pkg/middleware"
 	"github.com/westcoastcode-se/gocms/pkg/render"
-	"github.com/westcoastcode-se/gocms/pkg/render/cached"
-	"github.com/westcoastcode-se/gocms/pkg/render/immediate"
+	"github.com/westcoastcode-se/gocms/pkg/render/html"
+	"github.com/westcoastcode-se/gocms/pkg/render/html/cached"
+	"github.com/westcoastcode-se/gocms/pkg/render/html/immediate"
 	"github.com/westcoastcode-se/gocms/pkg/security"
 	"net/http"
 	"net/url"
@@ -64,12 +65,12 @@ type Server struct {
 	// Used for figuring what parts of the web requires what user roles
 	ACL security.ACL
 
-	// Database containing all templates used when rendering the actual pages
-	TemplateDatabase render.TemplateDatabase
-
-	// Factory used when creating contexts used by the rendering framework
-	// Override this if you want to add custom functions
-	ContextFactory render.ContextFactory
+	// Container for template renderers. You can add custom renderers if you want by:
+	//  server.TemplateRenderers.AddFactory(NewCustomTemplateFactory())
+	//
+	// There's a built-in renderer for html files based on the "html/template" package. It's possible to override
+	// this if you add a custom template renderer factory with html as suffix.
+	TemplateRenderers *render.TemplateRenderers
 
 	// Handlers
 	Handlers map[string]RequestHandler
@@ -93,22 +94,24 @@ func (s *Server) ServeTemplate(rw http.ResponseWriter, r *http.Request) {
 	Cache(s.PageCache, http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		model, pageNotFound := s.ContentRepository.FindByPath(uri)
 
-		// Create a new context used when rendering the template
-		renderCtx := s.ContextFactory.Create(r, model)
-
-		// Set http status
-		if pageNotFound != nil {
-			rw.WriteHeader(http.StatusNotFound)
-		} else {
-			rw.WriteHeader(http.StatusOK)
-		}
-
-		// Fetch a template that matches the view and url
-		err := renderCtx.RenderView(rw, "index.html", model)
+		// Fetch a factory for the template renderer. TODO: Custom view
+		renderFactory, err := s.TemplateRenderers.FindFactory("index.html")
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			log.LogFromRequest(r).Warn(err.Error())
 			return
+		}
+
+		// Set http status
+		if pageNotFound != nil {
+			rw.WriteHeader(http.StatusNotFound)
+		}
+
+		renderer := renderFactory.NewRenderer(r)
+		err = renderer.RenderView(rw, "index.html", model)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			log.LogFromRequest(r).Warn(err.Error())
 		}
 	})).ServeHTTP(rw, r)
 }
@@ -264,17 +267,20 @@ func NewServer(config *config.Config) *Server {
 	}
 
 	contentRepository := content.NewRepository(bus, config.ContentDirectory+"/pages")
-	var templateDatabase render.TemplateDatabase
+
+	var templateDatabase html.TemplateDatabase
 	if config.Author {
 		templateDatabase = immediate.NewFileSystemTemplateDatabase(config.ContentDirectory + "/templates")
 	} else {
 		templateDatabase = cached.NewDatabase(bus, config.ContentDirectory+"/templates")
 	}
-	contextFactory := &render.DefaultContextFactory{
+
+	templateRenderers := render.NewTemplateRenderers()
+	templateRenderers.AddFactory(".html", &html.TemplateRendererFactory{
 		ContentRepository: contentRepository,
 		TemplateDatabase:  templateDatabase,
 		Config:            *config,
-	}
+	})
 
 	result := &Server{
 		Bus:               bus,
@@ -286,11 +292,10 @@ func NewServer(config *config.Config) *Server {
 			Prefix:  "/assets",
 			Handler: http.FileServer(NewSecureFileSystem(config.ContentDirectory)),
 		},
-		PageCache:        pageCache,
-		ACL:              security.NewFileBasedACL(bus, config.ACLDatabasePath),
-		TemplateDatabase: templateDatabase,
-		ContextFactory:   contextFactory,
-		config:           *config,
+		PageCache:         pageCache,
+		ACL:               security.NewFileBasedACL(bus, config.ACLDatabasePath),
+		TemplateRenderers: templateRenderers,
+		config:            *config,
 		server: http.Server{
 			Addr:         config.Server.ListenAddr,
 			ReadTimeout:  time.Second * config.Server.ReadTimeout,

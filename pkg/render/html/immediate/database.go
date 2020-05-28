@@ -2,6 +2,7 @@ package immediate
 
 import (
 	"github.com/westcoastcode-se/gocms/pkg/render"
+	"github.com/westcoastcode-se/gocms/pkg/render/html"
 	"html/template"
 	"io/ioutil"
 	"os"
@@ -64,7 +65,7 @@ func (f *Database) FindTemplate(path string) (string, error) {
 }
 
 // Create a database based on the template directory instead of keeping it in memory
-func NewFileSystemTemplateDatabase(rootPath string) render.TemplateDatabase {
+func NewFileSystemTemplateDatabase(rootPath string) html.TemplateDatabase {
 	impl := &Database{rootPath: rootPath}
 	return impl
 }
