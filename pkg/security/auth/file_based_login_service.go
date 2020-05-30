@@ -1,26 +1,27 @@
-package security
+package auth
 
 import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"github.com/westcoastcode-se/gocms/pkg/event"
+	"github.com/westcoastcode-se/gocms/pkg/security"
 	"io/ioutil"
 	"sync"
 )
 
-type userDatabaseUser struct {
+type userData struct {
 	Username string
 	Password string
 	Roles    []string
 }
 
-type userDatabaseBody struct {
-	Users []userDatabaseUser
+type entryBody struct {
+	Users []userData
 }
 
-type fileBasedLoginService struct {
-	Users        []userDatabaseUser
+type FileBasedLoginService struct {
+	Users        []userData
 	databasePath string
 	mux          sync.Mutex
 
@@ -28,7 +29,7 @@ type fileBasedLoginService struct {
 	privateKey string
 }
 
-func (s *fileBasedLoginService) OnEvent(ctx context.Context, e interface{}) error {
+func (s *FileBasedLoginService) OnEvent(_ context.Context, e interface{}) error {
 	if _, ok := e.(*event.Checkout); ok {
 		if err := s.load(); err != nil {
 			return err
@@ -37,39 +38,39 @@ func (s *fileBasedLoginService) OnEvent(ctx context.Context, e interface{}) erro
 	return nil
 }
 
-func (s *fileBasedLoginService) Login(username string, password string) (*User, error) {
+func (s *FileBasedLoginService) Login(username string, password string) (*security.User, error) {
 	encoded := base64.StdEncoding.EncodeToString([]byte(password))
 	s.mux.Lock()
 	defer s.mux.Unlock()
 	for _, user := range s.Users {
 		if user.Username == username && user.Password == encoded {
-			return &User{
+			return &security.User{
 				Name:  user.Username,
 				Roles: user.Roles,
 			}, nil
 		}
 	}
-	return &User{
+	return &security.User{
 		Name:  "",
 		Roles: []string{},
 	}, &UserNotFound{username}
 }
 
-func (s *fileBasedLoginService) load() error {
+func (s *FileBasedLoginService) load() error {
 	bytes, err := ioutil.ReadFile(s.databasePath)
 	if err != nil {
 		return NewLoadError("could not read database file: '%s' because: '%e'", s.databasePath, err)
 	}
 
-	var body userDatabaseBody
+	var body entryBody
 	err = json.Unmarshal(bytes, &body)
 	if err != nil {
 		return NewLoadError("could not parse database file: '%s' because: '%e'", s.databasePath, err)
 	}
 
-	var users []userDatabaseUser
+	var users []userData
 	for _, u := range body.Users {
-		users = append(users, userDatabaseUser{
+		users = append(users, userData{
 			Username: u.Username,
 			Password: u.Password,
 			Roles:    u.Roles,
@@ -84,7 +85,7 @@ func (s *fileBasedLoginService) load() error {
 
 // Create a login service
 func NewLoginService(bus *event.Bus, userDatabase string) LoginService {
-	impl := &fileBasedLoginService{
+	impl := &FileBasedLoginService{
 		databasePath: userDatabase,
 	}
 	if len(userDatabase) > 0 {

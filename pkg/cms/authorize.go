@@ -3,7 +3,8 @@ package cms
 import (
 	"encoding/json"
 	"github.com/westcoastcode-se/gocms/pkg/log"
-	"github.com/westcoastcode-se/gocms/pkg/security"
+	"github.com/westcoastcode-se/gocms/pkg/security/auth"
+	"github.com/westcoastcode-se/gocms/pkg/security/jwt"
 	"net/http"
 )
 
@@ -17,7 +18,7 @@ type LoginResponse struct {
 	Token string
 }
 
-func login(loginService security.LoginService, tokenizer security.Tokenizer, ctx *RequestContext) {
+func login(loginService auth.LoginService, tokenizer jwt.Tokenizer, ctx *RequestContext) {
 	decoder := json.NewDecoder(ctx.Request.Body)
 	var body LoginRequest
 	err := decoder.Decode(&body)
@@ -53,12 +54,12 @@ func login(loginService security.LoginService, tokenizer security.Tokenizer, ctx
 
 	log.Infof(ctx.Request.Context(), "User: %s has successfully logged in", body.Username)
 	rw.Header().Set("Content-Type", "application/json")
-	http.SetCookie(rw, &http.Cookie{Name: security.SessionKey, Value: result, Path: "/", MaxAge: 60 * 60})
+	http.SetCookie(rw, &http.Cookie{Name: jwt.SessionKey, Value: result, Path: "/", MaxAge: 60 * 60})
 	rw.WriteHeader(http.StatusOK)
 	_, _ = rw.Write(loginResponseJson)
 }
 
 func logout(ctx *RequestContext) {
-	http.SetCookie(ctx.Response, &http.Cookie{Name: security.SessionKey, Value: "", Path: "/", MaxAge: -1})
+	http.SetCookie(ctx.Response, &http.Cookie{Name: jwt.SessionKey, Value: "", Path: "/", MaxAge: -1})
 	http.Redirect(ctx.Response, ctx.Request, "/login?logout=true", http.StatusTemporaryRedirect)
 }

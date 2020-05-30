@@ -1,4 +1,4 @@
-package security
+package acl
 
 import (
 	"context"
@@ -10,22 +10,22 @@ import (
 	"sync"
 )
 
-type aclEntry struct {
+type entry struct {
 	Prefix string
 	Roles  []string
 }
 
-type aclEntryBody struct {
-	Access []aclEntry
+type entryBody struct {
+	Access []entry
 }
 
-type fileBasedACL struct {
+type DefaultService struct {
 	databasePath string
 	mux          sync.Mutex
-	Database     map[string]aclEntry
+	Database     map[string]entry
 }
 
-func (f *fileBasedACL) GetRoles(uri string) []string {
+func (f *DefaultService) GetRoles(uri string) []string {
 	var distance = 100000
 	var roles []string
 
@@ -47,20 +47,20 @@ func (f *fileBasedACL) GetRoles(uri string) []string {
 	return roles
 }
 
-func (f *fileBasedACL) load(ctx context.Context) error {
+func (f *DefaultService) load(ctx context.Context) error {
 	log.Infof(ctx, "Loading ACL from %s", f.databasePath)
 	bytes, err := ioutil.ReadFile(f.databasePath)
 	if err != nil {
 		return NewLoadError("Could not read database file: '%s' because: %e", f.databasePath, err)
 	}
 
-	var body aclEntryBody
+	var body entryBody
 	err = json.Unmarshal(bytes, &body)
 	if err != nil {
 		return NewLoadError("Could not parse database file: '%s' because: %e", f.databasePath, err)
 	}
 
-	var database = make(map[string]aclEntry)
+	var database = make(map[string]entry)
 	for _, a := range body.Access {
 		database[a.Prefix] = a
 	}
@@ -71,7 +71,7 @@ func (f *fileBasedACL) load(ctx context.Context) error {
 	return nil
 }
 
-func (f *fileBasedACL) OnEvent(ctx context.Context, e interface{}) error {
+func (f *DefaultService) OnEvent(ctx context.Context, e interface{}) error {
 	if _, ok := e.(*event.Checkout); ok {
 		if err := f.load(ctx); err != nil {
 			return err
@@ -81,11 +81,11 @@ func (f *fileBasedACL) OnEvent(ctx context.Context, e interface{}) error {
 }
 
 // Create a new file-based ACL service.
-func NewFileBasedACL(bus *event.Bus, path string) ACL {
-	impl := &fileBasedACL{
+func NewFileBasedACL(bus *event.Bus, path string) Service {
+	impl := &DefaultService{
 		databasePath: path,
 		mux:          sync.Mutex{},
-		Database:     make(map[string]aclEntry),
+		Database:     make(map[string]entry),
 	}
 	if len(path) > 0 {
 		err := impl.load(context.Background())

@@ -1,5 +1,11 @@
 package security
 
+const (
+	Read  = "Read"
+	Write = "Write"
+	Admin = "Admin"
+)
+
 // Represents a user
 type User struct {
 	// The name of the user

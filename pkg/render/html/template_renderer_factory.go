@@ -6,6 +6,7 @@ import (
 	"github.com/westcoastcode-se/gocms/pkg/log"
 	"github.com/westcoastcode-se/gocms/pkg/render"
 	"github.com/westcoastcode-se/gocms/pkg/security"
+	"github.com/westcoastcode-se/gocms/pkg/security/jwt"
 	"html/template"
 	"io/ioutil"
 	"net/http"
@@ -21,7 +22,7 @@ type TemplateRendererFactory struct {
 
 func (h *TemplateRendererFactory) NewRenderer(r *http.Request) render.TemplateRenderer {
 	uri := r.URL.Path
-	user, _ := r.Context().Value(security.SessionKey).(*security.User)
+	user, _ := r.Context().Value(jwt.SessionKey).(*security.User)
 	funcs := template.FuncMap{
 		"Navigation": func() *content.Navigation { return &content.Navigation{uri} },
 		"Author":     func() bool { return h.Config.Author },

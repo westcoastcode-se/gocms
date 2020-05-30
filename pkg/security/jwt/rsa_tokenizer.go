@@ -1,9 +1,10 @@
-package security
+package jwt
 
 import (
 	"crypto/rsa"
 	"errors"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/westcoastcode-se/gocms/pkg/security"
 	"io/ioutil"
 	"time"
 )
@@ -13,7 +14,7 @@ type RsaTokenizer struct {
 	signKey   *rsa.PrivateKey
 }
 
-func (r *RsaTokenizer) UserToToken(user *User) (string, error) {
+func (r *RsaTokenizer) UserToToken(user *security.User) (string, error) {
 	now := time.Now()
 	expirationTime := now.Add(5 * time.Minute)
 	claims := &Claims{
@@ -35,21 +36,21 @@ func (r *RsaTokenizer) UserToToken(user *User) (string, error) {
 	return tokenString, nil
 }
 
-func (r *RsaTokenizer) TokenToUser(tokenAsString string) (*User, error) {
+func (r *RsaTokenizer) TokenToUser(tokenAsString string) (*security.User, error) {
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(tokenAsString, claims, func(token *jwt.Token) (interface{}, error) {
 		return r.verifyKey, nil
 	})
 
 	if err != nil {
-		return NotLoggedInUser, errors.New("could not parse token claims. Reason: " + err.Error())
+		return security.NotLoggedInUser, errors.New("could not parse token claims. Reason: " + err.Error())
 	}
 
 	if !token.Valid {
-		return NotLoggedInUser, errors.New("token is no longer valid")
+		return security.NotLoggedInUser, errors.New("token is no longer valid")
 	}
 
-	return &User{claims.Subject, claims.Roles}, nil
+	return &security.User{Name: claims.Subject, Roles: claims.Roles}, nil
 }
 
 // Create a new asymmetric tokenizer instance used.

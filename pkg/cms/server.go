@@ -15,6 +15,9 @@ import (
 	"github.com/westcoastcode-se/gocms/pkg/render/html/cached"
 	"github.com/westcoastcode-se/gocms/pkg/render/html/immediate"
 	"github.com/westcoastcode-se/gocms/pkg/security"
+	"github.com/westcoastcode-se/gocms/pkg/security/acl"
+	"github.com/westcoastcode-se/gocms/pkg/security/auth"
+	"github.com/westcoastcode-se/gocms/pkg/security/jwt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -43,12 +46,12 @@ type Server struct {
 	// Service used for managing user login.
 	// Override this value if you want a custom service for managing a users security:
 	//  server.SecurityService = custom.NewCustomerLoginService()
-	SecurityService security.LoginService
+	SecurityService auth.LoginService
 
 	// LoginService used for generating a token based on the supplied user (and back to the user)
 	// Override this value if you want to alter how the server tokenize a user before sending it to the client:
 	//  server.Tokenizer = custom.NewTokenizer()
-	Tokenizer security.Tokenizer
+	Tokenizer jwt.Tokenizer
 
 	// Controller for where content is located
 	ContentController content.Controller
@@ -63,7 +66,7 @@ type Server struct {
 	PageCache cache.Pages
 
 	// Used for figuring what parts of the web requires what user roles
-	ACL security.ACL
+	ACL acl.Service
 
 	// Container for template renderers. You can add custom renderers if you want by:
 	//  server.TemplateRenderers.AddFactory(NewCustomTemplateFactory())
@@ -82,7 +85,7 @@ type Server struct {
 func (s *Server) ServeTemplate(rw http.ResponseWriter, r *http.Request) {
 	uri := r.URL.Path
 
-	ctx := &RequestContext{User: r.Context().Value(security.SessionKey).(*security.User), Response: rw, Request: r}
+	ctx := &RequestContext{User: r.Context().Value(jwt.SessionKey).(*security.User), Response: rw, Request: r}
 
 	if s.handleBuiltIn(ctx) {
 		return
@@ -135,7 +138,7 @@ func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	requestId := uuid.New().String()
 	r = r.WithContext(log.SetRequestID(r.Context(), requestId))
 
-	token, err := r.Cookie(security.SessionKey)
+	token, err := r.Cookie(jwt.SessionKey)
 	var user *security.User
 	if err == nil && token.Value != "" {
 		user, err = s.Tokenizer.TokenToUser(token.Value)
@@ -147,7 +150,7 @@ func (s *Server) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		user = security.NotLoggedInUser
 	}
 
-	r = r.WithContext(context.WithValue(r.Context(), security.SessionKey, user))
+	r = r.WithContext(context.WithValue(r.Context(), jwt.SessionKey, user))
 	r = r.WithContext(log.SetUserName(r.Context(), user.Name))
 
 	defer func() {
@@ -284,8 +287,8 @@ func NewServer(config *config.Config) *Server {
 
 	result := &Server{
 		Bus:               bus,
-		SecurityService:   security.NewLoginService(bus, config.UserDatabasePath),
-		Tokenizer:         security.NewAsymmetricTokenizer(config.PublicKeyPath, config.PrivateKeyPath),
+		SecurityService:   auth.NewLoginService(bus, config.UserDatabasePath),
+		Tokenizer:         jwt.NewAsymmetricTokenizer(config.PublicKeyPath, config.PrivateKeyPath),
 		ContentController: content.NewGitController(bus, config.ContentDirectory),
 		ContentRepository: contentRepository,
 		FileHandler: FileHandler{
@@ -293,7 +296,7 @@ func NewServer(config *config.Config) *Server {
 			Handler: http.FileServer(NewSecureFileSystem(config.ContentDirectory)),
 		},
 		PageCache:         pageCache,
-		ACL:               security.NewFileBasedACL(bus, config.ACLDatabasePath),
+		ACL:               acl.NewFileBasedACL(bus, config.ACLDatabasePath),
 		TemplateRenderers: templateRenderers,
 		config:            *config,
 		server: http.Server{
